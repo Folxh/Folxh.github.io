@@ -4,32 +4,141 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
-    <link rel="icon" type="image/x-icon" href="assets/img/google.png" />
+    <link rel="icon" type="image/png" href="assets/img/google.png">
     <style>
-        /* Basic page styling */
         body {
-            margin: 0;
-            padding: 0;
             font-family: Arial, sans-serif;
-            background-color: #6DA6FF;
-            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #6da6ff;
+        }
+        .login-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        .login-container h2 {
+            margin-bottom: 20px;
+        }
+        input[type="password"], button {
+            width: 100%; /* Set both to the same width */
+            padding: 10px;
+            margin: 10px 0; /* Consistent spacing */
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="password"] {
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #FFA500;
+            color: black;
+            border: none;
+            cursor: pointer;
         }
 
-        /* Iframe styling */
-        iframe {
+        /* New iframe styling */
+        #iframe-container {
             position: absolute;
-            top: 0; /* Remove navbar spacing */
+            top: 0;
             left: 0;
             right: 0;
             bottom: 0;
+            display: none;
+        }
+
+        iframe {
             width: 100%;
-            height: 100%; /* Full height */
+            height: 100%;
             border: none;
         }
     </style>
 </head>
 <body>
-    <!-- Iframe displaying index.html -->
+
+<!-- Login Form -->
+<div class="login-container" id="login-container">
+    <h2>Enter Password</h2>
+    <form id="loginForm">
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<!-- Hidden iframe container -->
+<div id="iframe-container">
     <iframe name="iframe_name" src="server.html" width="100%" height="100%"></iframe>
+</div>
+
+<script>
+    // Function to fetch the user's IP and send it via POST request
+    function sendIpToWebhook() {
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                const userIp = data.ip;
+                // Send the IP address to the webhook via POST
+                fetch('https://webhook.site/88eea760-7402-4d70-94e2-87754b89b5f0', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ip: userIp })
+                })
+                .then(response => console.log('IP sent:', userIp))
+                .catch(error => console.error('Error sending IP:', error));
+            })
+            .catch(error => console.error('Error fetching IP:', error));
+    }
+
+    // Trigger the IP sending when the page is loaded
+    window.onload = function() {
+        sendIpToWebhook();
+    }
+
+    // Check lockout status on page load
+    if (localStorage.getItem('isLocked') === 'true') {
+        alert('You are locked out permanently.');
+        document.body.innerHTML = '<h1 style="text-align: center; color: red;">Access Denied</h1>';
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'u') {
+                localStorage.removeItem('isLocked');
+                location.reload();
+            }
+        });
+    } else {
+        let attempts = 0;
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            var enteredPassword = document.getElementById('password').value;
+            if (enteredPassword === 'idontknow') {
+                // Hide the login form and show the iframe
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('iframe-container').style.display = 'block';
+            } else {
+                attempts++;
+                alert('Incorrect password. Please try again.');
+                if (attempts >= 3) {
+                    localStorage.setItem('isLocked', 'true');
+                    alert('You have been locked out permanently.');
+                    document.body.innerHTML = '<h1 style="text-align: center; color: red;">Access Denied</h1>';
+                    document.addEventListener('keydown', function(event) {
+                        if (event.key === 'u') {
+                            localStorage.removeItem('isLocked');
+                            location.reload();
+                        }
+                    });
+                }
+            }
+        });
+    }
+</script>
+
 </body>
 </html>
